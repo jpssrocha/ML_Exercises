@@ -199,10 +199,13 @@ Foi utilizado o Python 3.12 e as bibliotecas:
    (c) Analyze the influence of optimizer hyperparameters
 ]
 
+<<<<<<< HEAD
 Para iniciar o processo precisamos selecionar uma base de dados. 
 
 === Base de dados
 
+=======
+>>>>>>> 2496bc53438b7a95c1a6685039afc8544541c7e3
 
 == Questão 2 - Complexidade do treinamento de uma MLP
 
