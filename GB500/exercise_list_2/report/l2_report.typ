@@ -251,11 +251,11 @@ predições, em duas matrizes diferentes.
 
 === Arquitetura de rede utilizada
 
-Como necessário para os dados a rede foi configurada com 30 neurônios de
+Como necessário para os dados utilizados, a rede foi configurada com 30 neurônios de
 entrada e 2 de saída. Como função de ativação foi usada a ReLu (@eq-relu), que
 foi escolhida pelas suas propriedades de treinamento rápido e estabilidade
 @Oostwal2021, facilitando assim a experimentação.  Na camada de saída, foi
-usada a _softmax_ @eq-softmax para ter uma saída que pode ser interpretada como
+usada a _softmax_ (@eq-softmax) para ter uma saída que pode ser interpretada como
 probabilidade, que era então transformada na classe mais provável para calcular
 a acurácia. Por fim, como função custo fora utilizada a entropia cruzada
 (@eq-cross-entropy) por apresentar vantagens em relação ao erro quadrático
@@ -284,7 +284,7 @@ realizados 3 treinamentos com descendência estocástica de gradiente (500
 épocas, taxa de aprendizagem de 0.1, sem uso de _batches_)  e calculada a mediana
 da acurácia num conjunto de validação (para aliviar os efeitos estocásticos por
 conta da inicialização dos pesos), isso então foi feito até que não fosse
-observada diferença nas primeiras casas decimais, assim era adicionada uma
+observada diferença nas primeiras casas decimais da acurácia, neste caso era adicionada uma
 camada e o procedimento repetido, caso a adição da nova camada não trouxesse
 melhoria a camada era descartada e o procedimento terminado. 
 
@@ -296,7 +296,7 @@ os pesos é utilizado algoritmo de inicialização de  Kaiming (ou He)
 
 Para realizar a validação cruzada foi utilizada a função kfold do scikit learn
 para auxiliar na construção dos _folds_. Como requisitado foram construídos 4
-_folds_ onde a acurácia foi calculada para cada _fold_. Relembrando a acurácia é
+_folds_ onde a acurácia foi calculada para cada _fold_. A acurácia é
 dada por:
 
 $
@@ -324,8 +324,8 @@ Para o conjunto de validação foi obtida a seguinte matriz de confusão:
 
 === (b) Estatísticas das métricas de performance
 
-Com os 4 _folds_ para o conjunto de treinamento foi obtida a acurácia média de 96.15% com 
-desvio padrão de 1.29%. Já no conjunto de validação foi obtido a acurácia média de 95.01%
+Com os 4 _folds_ para o _folds_ de treinamento foi obtida a acurácia média de 96.15% com 
+desvio padrão de 1.29%. Já nos _folds_ de validação foi obtido a acurácia média de 95.01%
 com desvio padrão de 1.56%.
 
 === (c) Verificando variações no otimizador
@@ -337,7 +337,7 @@ na @fig-lr. É possível observar que o algoritmo converge mais rapidamente para
 taxas de aprendizagem mais altas porém com a taxa igual a 1 aparecem estruturas
 de oscilação na evolução da função de perda. Pelas figuras é razoável afirmar
 que a taxa ideal está próxima de 0.5. Também é possível observar que quanto mais 
-distante deste valor a função de perda decai mais lentamente, e quando chegando 
+distante de 0.5 a função de perda decai mais lentamente, e quando chegando 
 próximo de 0.01 o decaimento é tão pequeno que é difícil de visualizar na figura.
 
 #figure(
