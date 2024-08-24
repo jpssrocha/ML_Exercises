@@ -135,8 +135,6 @@
 
 #outline(indent: true)
 
-#pagebreak()
-
 = Informações gerais
 
 Este documento contém as resoluções para os exercícios da segunda lista de
@@ -223,23 +221,129 @@ Foi utilizado o Python 3.12 e as bibliotecas:
    (c) Analyze the influence of optimizer hyperparameters
 ]
 
-Para iniciar o processo precisamos selecionar uma base de dados. 
+
+Para iniciar o processo foi necessário escolher uma base de dados.
 
 === Base de dados e seu tratamento
 
+A base escolhida foi o conjunto de dados de câncer de mama de Wisconsin
+@breast_cancer, por duas razões: ser amplamente utilizado para testes, sendo
+assim relativamente fácil comparar os resultados obtidos com outros resultados
+na literatura, e também por ser pequeno e portanto ter um baixo custo para
+avaliar a função custo, agilizando assim a exploração de arquiteturas
+diferentes. A mesma pode ser obtida via o repositório de conjuntos de dados da
+UCI #footnote(link("https://archive.ics.uci.edu/dataset/17/breast+cancer+wisconsin+diagnostic")).
 
+O conjunto é composto por 539 instâncias com 30 medidas da fisiologia de
+tumores de mama, classificados entre maligno ou benigno. O mesmo apresenta um
+desbalanceamento de classes por isso foram descartados dados da classe com o
+maior número de exemplos (benigno), resultando num conjunto de dados com 412
+exemplos.
+
+Além disso o conjunto de dados também apresentava uma grande diferença de
+escalas entre as características, com alguns atributos tendo a média  da ordem
+de $10^(-2)$ e outros na ordem de $10^2$. Por isso foi usado o MinMaxScaler do
+scikit learn para escalonar as colunas entre 0 e 1. 
+
+Por fim as etiquetas de benigno e maligno foram codificadas em _one-hot encoding_
+com a função get_dummies do pandas, e separadas as variáveis preditoras das
+predições, em duas matrizes diferentes.
 
 === Arquitetura de rede utilizada
 
-// Configuração das camadas de entrada e saída
+Como necessário para os dados a rede foi configurada com 30 neurônios de
+entrada e 2 de saída. Como função de ativação foi usada a ReLu (@eq-relu), que
+foi escolhida pelas suas propriedades de treinamento rápido e estabilidade
+@Oostwal2021, facilitando assim a experimentação.  Na camada de saída, foi
+usada a _softmax_ @eq-softmax para ter uma saída que pode ser interpretada como
+probabilidade, que era então transformada na classe mais provável para calcular
+a acurácia. Por fim, como função custo fora utilizada a entropia cruzada
+(@eq-cross-entropy) por apresentar vantagens em relação ao erro quadrático
+médio para tarefas de classificação @Kline2005.
 
-// Configuração das camadas escondidas
+$
+"ReLu"(x) = max(0, x)
+$ <eq-relu>
 
-// Função de ativação
+$
+"softmax"(x_i) = e^(-x_i)/(sum_(j=1) e^(-x_j))
+$ <eq-softmax>
 
-// Função de perda
 
-=== 
+$
+H(y_("pred"), y_("true")) = sum_i y_("true") log(y_("pred"))
+$ <eq-cross-entropy>
+
+
+Foi escolhida uma arquitetura com 2 camadas escondidas com 5 neurônios na
+primeira e 6 na segunda. Esta configuração foi escolhida após uma série de
+experimentos simples, seguindo o seguinte procedimento: foi feita uma divisão
+simples do conjunto de dados entre treinamento e validação, então partindo de
+uma camada com um neurônio, a quantidade de neurônios era aumentada e
+realizados 3 treinamentos com descendência estocástica de gradiente (500
+épocas, taxa de aprendizagem de 0.1, sem uso de _batches_)  e calculada a mediana
+da acurácia num conjunto de validação (para aliviar os efeitos estocásticos por
+conta da inicialização dos pesos), isso então foi feito até que não fosse
+observada diferença nas primeiras casas decimais, assim era adicionada uma
+camada e o procedimento repetido, caso a adição da nova camada não trouxesse
+melhoria a camada era descartada e o procedimento terminado. 
+
+Os parâmetros por padrão são inicializados no PyTorch com os bias em 0 e para
+os pesos é utilizado algoritmo de inicialização de  Kaiming (ou He)
+@Kaiming2015.
+
+=== Validação usando K-Fold
+
+Para realizar a validação cruzada foi utilizada a função kfold do scikit learn
+para auxiliar na construção dos _folds_. Como requisitado foram construídos 4
+_folds_ onde a acurácia foi calculada para cada _fold_. Relembrando a acurácia é
+dada por:
+
+$
+"acc" = "classificações corretas"/"classificações incorretas"
+$
+
+
+=== (a) Visualizando a evolução das métricas
+
+Durante o treinamento foram guardadas os valores saídos da função de perda e da acurácia. Um
+exemplo pode ser visto na @fig-evolution.
+
+#figure(
+  image("figures/train_evolution.png"),
+  caption: "Exemplo da evolução das métricas de treinamento e acurácia"
+) <fig-evolution>
+
+Para o conjunto de validação foi obtida a seguinte matriz de confusão:
+
+#figure(
+    image("figures/confusion_mat.png", width: 60%),
+  caption: "Exemplo matriz de confusão de validação."
+) 
+
+
+=== (b) Estatísticas das métricas de performance
+
+Com os 4 _folds_ para o conjunto de treinamento foi obtida a acurácia média de 96.15% com 
+desvio padrão de 1.29%. Já no conjunto de validação foi obtido a acurácia média de 95.01%
+com desvio padrão de 1.56%.
+
+=== (c) Verificando variações no otimizador
+
+Para verificar a sensibilidade do otimizador foram inicialmente utilizados
+diferentes valores para a taxa de aprendizagem (1, 0.5, 0.1, 0.05, 0.01, 0.005,
+0.001). A evolução da função de perda para as diferentes taxas pode ser vista
+na @fig-lr. É possível observar que o algoritmo converge mais rapidamente para
+taxas de aprendizagem mais altas porém com a taxa igual a 1 aparecem estruturas
+de oscilação na evolução da função de perda. Pelas figuras é razoável afirmar
+que a taxa ideal está próxima de 0.5. Também é possível observar que quanto mais 
+distante deste valor a função de perda decai mais lentamente, e quando chegando 
+próximo de 0.01 o decaimento é tão pequeno que é difícil de visualizar na figura.
+
+#figure(
+  image("figures/different_lr.png"),
+  caption: "Evolução da função de perda para diferentes taxas de aprendizagem"
+) <fig-lr>
 
 
 #pagebreak()
@@ -266,7 +370,7 @@ A arquitetura desejada pode ser vista na @fig-nn-mono.
   caption: "Arquitetura desejada. (Fig 9.6 da monografia)"
 ) <fig-nn-mono>
 
-Dado que foi pedido o custo do pior caso, será assumido tamanho de batch 1, ou
+Dado que foi pedido o custo do pior caso, será assumido tamanho de _batch_ 1, ou
 seja, a cada dado avaliado será dado um passo, o que maximiza o número de
 operações de atualização dentro de um dado número de épocas. Também pela mesma
 razão será assumido que dadas as camadas $[1, 2, ..., L]$, a quantidade de
@@ -277,7 +381,7 @@ Para facilitar a contagem das operações de básicas o processo será dividido 
 partes e combinado ao final para montar o processo de treinamento. Teremos a
 fases:
 
-+ Forward
++ _Forward_
 + Derivadas em relação aos neurônios
 + Derivadas em relação aos parâmetros
 + Atualização dos pesos
@@ -316,13 +420,13 @@ Uma implementação seguindo este esquema foi feita e testada e pode ser vista n
 `q2_backpropagation.ipynb` do repositório com as implementações. O algoritmo apresentado 
 aqui segue o mesmo fluxo.
 
-Para iniciar o processo de treinamento, começamos pelo forward em um ponto do
-conjunto de de treinamento, para iniciar o processo de backpropagation sob esse
+Para iniciar o processo de treinamento, começamos pelo _forward_ em um ponto do
+conjunto de de treinamento, para iniciar o processo de _backpropagation_ sob esse
 ponto.
 
-=== Forward
+=== _Forward_
 
-Para o forward, usando as premissas de pior caso, teremos para cada neurônio
+Para o _forward_, usando as premissas de pior caso, teremos para cada neurônio
 nas camadas escondidas $S$ operações de multiplicação, $S-1$ de soma, uma
 operação de soma do bias e o custo da aplicação da função de ativação $sigma$.
 Teremos $S$ neurônios por camada logo teremos $S$ vezes este custo. E isso será
@@ -330,7 +434,7 @@ aplicado desta forma para cada camada escondida, então se temos $L$ camadas e d
 são as de entrada e saída teremos $L-2$ vezes este custo. Para finalizar temos que
 contar o custo da camada de saída, que sera o custo de um único perceptron. 
 
-Durante o forward as entradas e saídas de cada camada são guardadas para uso
+Durante o _forward_ as entradas e saídas de cada camada são guardadas para uso
 posterior ($"Nets"$ e $O$), no entanto como dito anteriormente não serão incluídos na análise
 custos de acesso à memória.
 
@@ -377,11 +481,11 @@ CC(Delta^L) &= 1 + CC(cal(L)') + CC(sigma') + 1 \
             &= CC(cal(L)') + CC(sigma') + 2
 $
 
-Na penultima camada ($L-1$) temos que $Delta^(l+1)$ = $Delta^L$, sendo assim,
+Na penúltima camada ($L-1$) temos que $Delta^(l+1)$ = $Delta^L$, sendo assim,
 teremos apenas um valor no vetor $Delta^(l+1)$ e uma coluna na matriz $W^(l+1)$
-da @eq-delta-middle, pois só há um neurônio de output, logo precisamos computar
+da @eq-delta-middle, pois só há um neurônio de _output_, logo precisamos computar
 o custo dessa camada separadamente das outras camadas que tem tamanho igual
-entre sí. Neste caso o tamanho da matriz  $W^(l+1)$ na @eq-delta-middle é $S x
+entre si. Neste caso o tamanho da matriz  $W^(l+1)$ na @eq-delta-middle é $S x
 1$ e do vetor $Delta^(l+1)$ é $1 times 1$ logo multiplicando os dois teremos $S$
 operações de multiplicação. O tamanho do vetor $"net"^(L-1)$ será $S times 1$, logo
 teremos que avaliar $sigma'$, $S$ vezes e então para multiplicar entrada a
@@ -393,9 +497,9 @@ CC(Delta^(L-1)) &= S + S CC(sigma') + S \
 $
 
 Para cada camada $l$ tal que $l in [2, L-2]$, ou seja, desde a primeira camada
-escondida até a penultima, teremos camadas de tamanho $S$, logo teremos que
+escondida até a penúltima, teremos camadas de tamanho $S$, logo teremos que
 computar o mesmo custo $L-3$ vezes, sendo todas as camadas menos as camadas de
-entrada, saída e a penultima. No domínio mencionado as matrizes de peso
+entrada, saída e a penúltima. No domínio mencionado as matrizes de peso
 $W^(l+1)$ terão tamanho $S times S$ e o vetor de pesos $Delta^(l+1)$ terá tamanho
 $S times 1$. Logo teremos que computar $S$ produtos internos com $S$ multiplicações
 e $S - 1$ somas na primeira parte da @eq-delta-middle. O vetor $"net"^l$ terá tamanho $S$
@@ -408,7 +512,7 @@ CC(Delta^l) &= S(S + (S - 1)) + S + S CC(sigma') \
 $
 
 Logo o custo total para computar todos os deltas é a soma dos deltas da
-ultima camada, mais os da penultima camada, mais o das $L - 3$ camadas
+ultima camada, mais os da penúltima camada, mais o das $L - 3$ camadas
 restantes.
 
 $
@@ -434,7 +538,7 @@ $ <eq-grad-b>
 Serão computadas as operações para os pesos e bias e  separadamente para
 facilitar a organização. Novamente será necessário computar as operações na
 ultima camada primeiro e depois o resto. Avaliando a @eq-grad-w na ultima camada a
-matriz de outputs ($O^(L-1)$) terá a forma $S times 1$ e os deltas $Delta^(L)$
+matriz de _outputs_ ($O^(L-1)$) terá a forma $S times 1$ e os deltas $Delta^(L)$
 transpostos serão $1 times 1$. Logo teremos $S$ multiplicações. Depois precisamos
 acumular este gradiente somando na posição $L$ da lista de acumuladores $"List"(nabla
 cal(L)_W)[L]$, logo são $S$ somas. Assim:
@@ -527,7 +631,7 @@ auxiliares e então para cada época iremos embaralhar os dados, porem este cust
 é complexo de computar e não é o foco desta análise, portanto o mesmo será
 desconsiderado. Assim seguindo com o algoritmo para cada dado de treinamento
 iremos fazer o _forward_, calcular os deltas, calcular os gradientes e dado que
-foi assumido um batch de tamanho 1 será feita uma atualização a cada ponto.
+foi assumido um _batch_ de tamanho 1 será feita uma atualização a cada ponto.
 Logo temos:
 
 $
@@ -788,7 +892,7 @@ normalmente iriam se sobressair numa pessoa com a expressão sorridente.
 
 Repetindo o mesmo exercício com a $p c_2$ é possível visualizar que a mesma
 apresenta uma face sorridente. Olhando sem a adição da face média é possível
-ver que a mesma correlaciona bastante com as areas ao redor da boca e ao redor
+ver que a mesma correlaciona bastante com as áreas ao redor da boca e ao redor
 dos olhos que normalmente ficam com vários detalhes ao sorrir.
 
 #subpar.grid(
