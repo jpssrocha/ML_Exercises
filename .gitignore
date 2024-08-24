@@ -1,4 +1,5 @@
 **/*.pdf
+!GB500/exercise_list_3/lista-final.pdf
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
