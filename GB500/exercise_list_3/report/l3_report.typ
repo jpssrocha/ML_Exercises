@@ -53,7 +53,10 @@ possível abrir e interagir com as implementações. OBS: Para que as instruçõ
 acima funcionem é necessário instalar o git e o conda (que pode ser instalado
 via o anaconda).
 
-Foi utilizado o Python 3.11 e as bibliotecas:
+Foi utilizado o Python 3.11 #footnote([Foi utilizada a versão 3.11 invés da
+  3.12, pois a funcionalidade `torch.compile`, que pode aumentar em 2x a
+  velocidade de execução, ainda não é suportada na 3.12]) e as
+bibliotecas:
 
 - NumPy: Manipulação de dados numéricos e operações matriciais
 - Pandas: Manipulação de dados tabulares
@@ -62,6 +65,7 @@ Foi utilizado o Python 3.11 e as bibliotecas:
 - SciPy: Funções auxiliares
 - Scikit-learn: Utilitários treinamento de modelos
 - PyTorch: Definição e treinamento de rede neurais
+
 
 #pagebreak(weak: true)
 
@@ -94,7 +98,7 @@ O conjunto de dados escolhido foi a base de faces da FEI
 #footnote("https://fei.edu.br/~cet/facedatabase.html")<link-fei>@fei_database
 que é uma coleção de 400 fotos de 200 pessoas, para cada pessoa há uma foto
 sorridente e uma foto neutra. Foi usado a base normalizada e cortada, que podem
-ser acessados pelos links abaixo (assim como na questão 3 da lista anterior).
+ser acessados pelos links abaixo.
 
 #align(center)[
 - #link("https://fei.edu.br/~cet/frontalimages_spatiallynormalized_cropped_equalized_part1.zip")[Rostos alinhados e cortados - Parte 1]
@@ -107,9 +111,10 @@ Será considerado o problema de classificação entre face sorridente e neutra.
 
 Os dados foram operados da mesma forma que na questão 3 da lista 2. Ou seja,
 foram carregados um a um, transformados em vetores e montados numa matriz por
-colunas. Novamente os valores já estão normalizados entre 0 e 255. Salvo que
-desta vez não foi removida a média pois para o KPCA isso é feito diretamente
-sob a matriz de covariâncias.
+colunas. Novamente os valores já estão padronizados entre 0 e 255. Desta vez
+não foi removida a média pois para o KPCA isso é feito diretamente sob a matriz
+de covariâncias. Em todo caso já que serão usadas as facilidades do sklearn
+estas operações são feitas automaticamente.
 
 Como mencionado anteriormente os dados estão divididos em metade sorridente e
 metade neutro, ou seja, a base já está balanceada. Logo não foi necessário usar
@@ -117,8 +122,9 @@ nenhum tipo de balanceamento para a tarefa de classificação.
 
 === (a) SVM linear com KPCA
 
-Para este item, bem como os próximos foram usadas as facilidades do scikit
-learn, dado que o mesmo possui módulos prontos para o caso não separável da SVM
+Para este item, bem como os próximos foram usadas as facilidades da biblioteca scikit
+learn, dado que a mesma possui módulos prontos para o caso não separável da SVM 
+#footnote[Como a documentação fala em https://scikit-learn.org/stable/modules/svm.html#svc]
 (com _kernel_ a escolher), bem como para o KPCA 
 #footnote[Fora testado no caderno `q1.1_supplement_kpca_by_hand.ipynb`].
 
@@ -131,7 +137,9 @@ hiper parâmetros foram mantidas as configurações padrão do sklearn. O _kerne
 escolhido testando dentre todos os disponíveis e escolhendo aquele que resultasse na
 maior acurácia num conjunto de teste, e o número de PC's foi escolhido com base no
 comportamento observado para as PC's no caso linear escolhendo o número de PC's
-necessárias pra recuperar 95% da variância.
+necessárias pra recuperar 95% da variância (150 PC's). Foi usado o mesmo número
+de PC's tanto no caso linear quanto no caso não linear para ter uma comparação 
+mais direta.
 
 Para ajustar e rodar ambos SVM e KPCA, em sequência fora usado o utilitário
 `pipeline` também do scikit learn. Resultando no modelo definido no código 
@@ -294,9 +302,9 @@ de 95% de potência.
   #align(center)[Enunciado:] 
 
   Consider a database and a classification problem. Apply leave-one-out
-  multi-fold cross-validation ex- plained in section 8.5 of [2], with K = 5,
-  for a CNN model. Use the facilities available in libraries for neural network
-  implementation, like Keras, Tensor flow, etc. [3].
+  multi-fold cross-validation ex- plained in section 8.5 of the course
+  monograph, with K = 5, for a CNN model. Use the facilities available in
+  libraries for neural network implementation, like Keras, Tensor flow, etc.
 
   (a) Show the graphical representation of the evolution of training and
   validation stages (see Figure 8.8 of the course monograph). 
@@ -304,6 +312,101 @@ de 95% de potência.
   (b) Perform a statistical analysis of the performance (section 8.6) of the
   five models applied over the $DD_(t e)$ .
 ]
+
+=== Base de dados
+
+Dado que redes neurais convolucionais possuem um grande quantidade de
+parâmetros, foi escolhida para esta questão uma base maior, especificamente a
+base de dados clássica MNIST #footnote[https://yann.lecun.com/exdb/mnist/], a
+versão utilizada é composta por 70 mil imagens de dígitos escritos à mão, de
+$28 times 28$  _pixels_ com as devidas etiquetas (sendo 60 mil de treino e 10
+mil de validação). As imagens da base já estão normalizadas entre 0 e 1, e em
+preto e branco, não necessitando pré-processamento da imagens para a tarefa de
+classificação. As etiquetas tiveram que ser transformadas usando um esquema de
+_one-hot encoding_. As imagens foram carregadas e agrupadas em _batches_ usando
+as facilidades da biblioteca PyTorch.
+
+#figure(
+  image("figures/mnist_example.png", width: 65%),
+  caption: "Exemplo de imagem do mnist"
+) <fig-mnist-ex>
+
+Foi verificado o balanço do conjunto de dados, e observado que o mesmo não é
+perfeitamente balanceado, no entanto está bem próximo, com todas as classes
+tendo aproximadamente 6 mil ocorrências de treino e mil de validação. Na
+@fig-class-balance é possível ver a distribuição entre as classes no conjunto
+de treinamento. Portanto não foi aplicada nenhuma técnica de balanceamento de
+classes.
+
+#figure(
+  image("figures/class_balance.png", width: 50%),
+  caption: "Histograma das classes no conjunto de treinamento"
+) <fig-class-balance>
+
+=== Arquitetura da rede
+
+A rede fora também definida utilizando a biblioteca PyTorch. A arquitetura da
+rede foi escolhida via tentativa e erro partindo de arquiteturas comumente
+utilizadas para classificação de imagens pequenas #footnote[Estas arquiteturas
+  foram observadas dentre as analises compartilhadas no site www.kaggle.com],
+esta aproximação foi escolhida pois o tempo de processamento para treinar no
+computador utilizado (10-20 min) tornou inviável esperar o tempo necessário
+para testar muitas combinações. Foram feitos alguns experimentos em cima dos
+dados de teste e treinamento até obter uma acurácia acima de 0.95 no conjunto
+de teste, usando descendência de gradiente estocástica com taxa de aprendizagem
+de 0.5 tamanho de _batch_ de 50 e com 4 épocas #footnote[a partir de 5 épocas
+  estava sendo observado _overfitting_].
+
+Desta forma foi escolhida uma arquitetura iniciando por um bloco de 16
+convoluções com _kernels_ $ 7 times 7$, seguidos por uma camada de _max pooling_,
+então os dados eram vetorizados e passados para uma rede neural densa com
+1936 neurônios na primeira camada ($16 times 11 times 11$) seguida uma função
+de ativação _ReLU_, então uma camada de saída com 10 neurônios que então eram
+passados para uma função de ativação _softmax_. 
+
+Esta configuração ultrapassou a acurácia desejada, chegando à 98% nos testes
+feitos para definir a arquitetura da rede. Na @fig-confusion-ex é possível ver
+a matriz de confusão sob as 10 mil amostras de teste.
+
+#figure(
+  image("figures/example_confusion.png", width: 75%),
+  caption: "Exemplo de matriz de confusão obtida nos testes iniciais",
+  placement: auto,
+) <fig-confusion-ex>
+
+
+ Aparentemente esta arquitetura encorajou a rede a aprender
+filtros de convolução que destacam as bordas em diferentes direções, como pode
+ser observado na @fig-conv-ex.
+
+#figure(
+  image("figures/convolution.png", width: 50%),
+  caption: "Exemplo de saída do bloco de 16 convoluções aprendidas",
+) <fig-conv-ex>
+
+
+=== (a) Evolução do treinamento
+
+Durante os treinamentos foram guardados os valores para a função de perda e
+acurácia sob os batches de treinamento e de validação. Um exemplo do
+treinamento pode ser visto abaixo na @fig-evolution. 
+
+
+#figure(
+  image("figures/example_evolution.png", width: 100%),
+  caption: "Evolução das métricas de loss e acurácia durante o treinamento",
+  //placement: auto,
+) <fig-evolution>
+
+Para verificar se os resultados finais obtidos são robustos, foi então feita a
+validação cruzada.
+
+=== (b) Estatísticas da validação cruzada (K=5)
+
+Nesta etapa foi usado novamente as facilidades do PyTorch combinadas com o
+objeto KFold do sklearn  para fazer a divisão dos folds e treinamento dos k
+modelos (k=5). Foram obtidos os 5 valores de acurácia sob a partição de
+validação obtendo a acurácia média de 97.65% com desvio padrão de 0.20%.
 
 #pagebreak(weak: true)
 == Questão 3
@@ -319,12 +422,142 @@ de 95% de potência.
   Consider an image database and a classification problem.
 
   (a) Apply leave-one-out multi-fold cross-validation explained in section 8.5
-  of [2], with K = 4 with LDA in the reduced PCA space and perform
+  of the monography, with K = 4 with LDA in the reduced PCA space and perform
   classification over the test set. Analyze the results.
 
   (b) Apply leave-one-out multi-fold cross-validation explained in section 8.5
-  of [2], with K = 4, and non-separable Kernel SVM with feature space obtained
+  of the monography, with K = 4, and non-separable Kernel SVM with feature space obtained
   through the Discriminant Principal Component Analysis (DPCA).
 
   (c) Compare the results obtained in items (a)-(b) above.
 ]
+
+=== Base de dados e processamento
+
+Para este exercício será novamente usada a base de dados de faces da FEI, como na questão 1
+usando os mesmos passos de processamento.
+
+=== (a) Classficação usando LDA
+
+Neste item foi combinado a projeção na direção do LDA, através do objeto
+`LinearDiscriminantAnalysis`, com uma classificação usando uma SVM, através do
+objeto `LinearSVC`, ambos do scikit learn. Pra isso foi montada uma pipeline como 
+mostrado no código abaixo.
+
+```py
+make_pipeline(
+    LinearDiscriminantAnalysis(),
+    LinearSVC(),
+) 
+```
+
+Na @fig-lda-proj podemos ver um exemplo da projeção dos dados na direção dada
+pelo LDA. Que foram então passados para a SVM para definir o ponto de
+separação.
+
+#figure(
+  image("figures/q3_a_proj_lda.png", width: 50%),
+  caption: "Projeção de todos os dados na direção dada pela LDA",
+
+) <fig-lda-proj>
+
+Após a definição do modelo, foi feito o treinamento e validação cruzada do
+classificador via k-fold com k=4. Foram obtidas as matrizes de confusão
+apresentadas na @fig-conf-3a, através delas foi possível ver que o
+classificador se mostrou bastante acurado e ao errar não apresentou um viés 
+para falso positivo, ou falso negativo.
+
+#figure(
+  image("figures/q3_a_cross_val.png"),
+  caption: "Matrizes de confusão da validação cruzada"
+) <fig-conf-3a>
+
+No geral foi obtido uma acurácia de 96.75% com desvio padrão de 1.48%.
+Apresentando um bom desempenho global.
+
+=== (b) Classficação usando DPCA
+
+Para este item, dado que o DPCA não é um método padrão do sklearn foi 
+desenvolvida uma pequena classe para fazer o mesmo funcionar devidamente
+com as facilidades do sklearn. A mesma pode ser vista no código abaixo.
+
+```py
+class DPCA:
+
+    def __init__(self, n_components):
+        self.pca = PCA(n_components=n_components)
+
+    def fit(self, X, Y):
+
+        # Start fitting
+        X_pca = self.pca.fit_transform(X)
+        svm = LinearSVC().fit(X_pca, Y)
+
+        # Sorting PCA components
+        sorted_idx = np.flip(np.argsort(np.abs(svm.coef_)))
+        self.pca.components_ = self.pca.components_[sorted_idx.ravel(), :]
+
+    def transform(self, X):
+        return self.pca.transform(X)
+
+    def fit_transform(self, X, Y):
+        self.fit(X, Y)
+        return self.pca.transform(X)
+```
+
+No método `DPCA.fit` foi colocado o código para o algorítmo da DPCA usando uma
+SVM linear como classificador. Este método segue o seguinte procedimento:
+
+1. Os dados `X` são usados para computar a matriz de projeção do PCA e
+projetados através da mesma (`pca.fit_transfom`); 
+
+2. Uma SVM Linear é treinada nos dados projetados e suas etiquetas (`X_pca`, `Y`);
+
+3. A matrix de projeção da PCA é então modificada para ficar em ordem
+decrescente de valor absoluto  das componentes do vetor diretor do hiperplano
+separador da SVM.
+
+Assim o método `DPCA.transform` agora irá usar a matriz reordenada para fazer
+as projeções, que irá basicamente rodar a projeção do modelo de PCA padrão mas
+com a base reordenada. Com isso o DPCA pode ser usado junto com a
+funcionalidade de pipeline do sklearn e podemos reutilizar o código usados nos
+itens anteriores para fazer a validação cruzada. Podemos então instanciar um modelo 
+usando o código:
+
+```py
+make_pipeline(
+        DPCA(150),
+        SVC(kernel="sigmoid")
+    )
+```
+
+Foram usadas novamente 150 componentes principais e uma SVM com kernel
+sigmoidal como na questão 1 pelas mesmas razões. Com isso podemos iniciar a
+validação cruzada com k-fold, usando K=4 como solicitado. Fazendo isso foram
+obtidas as matrizes de confusão apresentadas na @fig-conf-3b.
+
+#figure(
+  image("figures/q3_b_cross_val.png"),
+  caption: "Matrizes de confusão da validação cruzada"
+) <fig-conf-3b>
+
+O mesmo apresentou um desempenho similar ao do item a, tendo uma alta taxa de
+acerto e não foi observado viés nas classificações erradas. No desempenho global 
+foi obtido para a acurácia uma média de 96.50% e para o desvio padrão 1.66%
+
+=== (c) Comparando as configurações
+
+As estatísticas obtidas para o desempenho global foram para a configuração (a)
+$mu_b = 96.75%$ e $sigma_a = 1.48%$ e  para a configuração (b) foi obtido $mu_b
+= 96.50%$ e $sigma_b = 1.66%$. Novamente os pontos apresentam um alto grau de
+sobreposição, como pode ser visto na @fig-kde-3c.
+
+#figure(
+  image("figures/q3c_kde.png", width: 50%),
+  caption: "KDE plot das medidas de acurácia em ambas as configurações"
+) <fig-kde-3c>
+
+Dada uma diferença tão pequena entre as distribuições, e considerando que é
+ainda menor que o observado na questão 1 como foi argumentado anteriormente,
+não é possível afirmar a existência de uma diferença significativa no
+desempenho global dos métodos.
