@@ -1,4 +1,4 @@
-// Typst template for making simple reports for the disciplines in the LNCC
+mplate for making simple reports for the disciplines in the LNCC
 // masters/PhD program.
 
 
@@ -20,7 +20,7 @@
 
   // IMPORTS //
 
-  import "@preview/subpar:0.1.1"
+  import "@preview/subpar:0.1.1": *
   import "@preview/codly:1.0.0": *
 
 

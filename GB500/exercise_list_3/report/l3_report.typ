@@ -1,4 +1,5 @@
 #import "lncc_report_template.typ": template
+#import "@preview/subpar:0.1.1"
 
 #show: doc => template(
   title: [Resolução da lista final \ SVM, CNN, KPCA, DPCA e LDA],
@@ -51,11 +52,9 @@ jupyter notebook
 Isso irá ativar o ambiente e lançar a interface do jupyter de onde será
 possível abrir e interagir com as implementações. OBS: Para que as instruções
 acima funcionem é necessário instalar o git e o conda (que pode ser instalado
-via o anaconda).
-
-Foi utilizado o Python 3.11 #footnote([Foi utilizada a versão 3.11 invés da
-  3.12, pois a funcionalidade `torch.compile`, que pode aumentar em 2x a
-  velocidade de execução, ainda não é suportada na 3.12]) e as
+via o anaconda). Foi utilizado o Python 3.11 #footnote([Foi utilizada a versão
+  3.11 invés da 3.12, pois a funcionalidade `torch.compile`, que pode aumentar
+  em 2x a velocidade de execução, ainda não é suportada na 3.12]) e as
 bibliotecas:
 
 - NumPy: Manipulação de dados numéricos e operações matriciais
@@ -106,6 +105,15 @@ ser acessados pelos links abaixo.
 ]
 
 Será considerado o problema de classificação entre face sorridente e neutra.
+
+#subpar.grid(
+  figure(image("figures/100a.jpg", width: 50%), caption: "Face neutra"),
+  figure(image("figures/100b.jpg", width: 50%), caption: "Face sorrindo"),
+  columns: (1fr, 1fr),
+  column-gutter: -30pt
+)
+
+
 
 === Processamento dos dados
 
@@ -175,7 +183,7 @@ Para cada _fold_ de teste ($N=100$) foram obtidas as matrizes de confusão da
 obtida uma média $mu_a = 94.25%$ e desvio padrão $sigma_a = 2.86%$.
 
 #figure(
-  image("figures/q1_a.png", width: 65%),
+  image("figures/q1_a.png", width: 85%),
   caption: "Matrizes de confusão para cada fold"
 ) <fig-conf-1a>
 
@@ -192,14 +200,15 @@ todos os _kernels_ disponíveis e então escolhido o que resultasse na maior acu
 sob o conjunto de teste.
 
 Em seguida foi feita a validação cruzada usando exatamente o mesmo processo do
-item anterior. Obtendo as matrizes de confusão da @fig-conf-1b.
+item anterior. Obtendo as matrizes de confusão da @fig-conf-1b. Foi obtida uma
+acurácia média $mu_b = 96.25%$ e o desvio padrão $sigma_b = 1.92%$.
 
 #figure(
-  image("figures/q1_b.png", width: 65%),
-  caption: "Matrizes de confusão para cada fold"
+  image("figures/q1_b.png", width: 85%),
+  caption: "Matrizes de confusão para cada fold",
+  placement: auto
 ) <fig-conf-1b>
 
-Foi obtida uma acurácia média $mu_b = 96.25%$ e o desvio padrão $sigma_b = 1.92%$.
 
 === (c) Comparação dos métodos
 
@@ -388,13 +397,13 @@ ser observado na @fig-conv-ex.
 === (a) Evolução do treinamento
 
 Durante os treinamentos foram guardados os valores para a função de perda e
-acurácia sob os batches de treinamento e de validação. Um exemplo do
-treinamento pode ser visto abaixo na @fig-evolution. 
+acurácia sob os batches de treinamento e de validação. Um exemplo da evolução
+do treinamento pode ser visto abaixo na @fig-evolution, para uma das rodadas de experimentação. 
 
 
 #figure(
-  image("figures/example_evolution.png", width: 100%),
-  caption: "Evolução das métricas de loss e acurácia durante o treinamento",
+  image("figures/example_evolution.png", width: 90%),
+  caption: "Evolução das métricas de loss e acurácia durante o treinamento, na experimentação",
   //placement: auto,
 ) <fig-evolution>
 
@@ -406,7 +415,56 @@ validação cruzada.
 Nesta etapa foi usado novamente as facilidades do PyTorch combinadas com o
 objeto KFold do sklearn  para fazer a divisão dos folds e treinamento dos k
 modelos (k=5). Foram obtidos os 5 valores de acurácia sob a partição de
-validação obtendo a acurácia média de 97.65% com desvio padrão de 0.20%.
+validação obtendo a acurácia média de 97.89% com desvio padrão de 0.26%.
+
+Na @fig-confusion-k1 podemos ver a matriz de confusão do fold 1, é possível
+observar que a acurácia das classificações ficou equilibrada no geral, apenas
+tendo uma tendência um pouco maior de imagens do dígito 9 serem classificadas
+de forma errada, que pode ser visto na linha do dígito 9. Como esperado temos
+uma maior quantidade de dígitos 5 devidamente classificados, isso se dá pois há
+uma quantidade um pouco maior de dados para o mesmo no conjunto de dados.
+
+
+#figure(
+  image("figures/cnn_confusion_k=1.png", width: 75%),
+  caption: "Matriz de confusão com k=1",
+) <fig-confusion-k1>
+
+Para ter uma visão geral das 5 matrizes de confusão as mesmas foram empilhadas
+numa terceira dimensão, formando um tensor e foi tirado a média e desvio padrão
+ao longo desta dimensão, os mesmos podem ser vistos na @fig-confusion-mean e
+@fig-confusion-std.
+
+#subpar.grid(
+  figure(
+    image("figures/q2_mean_conf.png"),
+    caption: "Matriz de confusão média",
+  ), <fig-confusion-mean>,
+
+  figure(
+    image("figures/q2_std_conf.png"),
+    caption: "Matriz de confusão de desvios padrão",
+  ), <fig-confusion-std>,
+  columns: (1fr, 1fr),
+  column-gutter: -30pt,
+  caption: "Matrizes de confusão agregadas"
+)
+
+A tendência a errar a classificação do dígito 9 foi diminuída ao longo dos
+folds, portanto provavelmente aquele viés era específico do modelo k=1. A grade
+de desvios padrão foi dividida pela grade de médias (somado com 1 para evitar
+divisões por zero) para facilitar a visualização das células sem o efeito de
+escala. O resultado pode ser visto na @fig-confusion-norm.
+
+#figure(
+  image("figures/q2_std_norm_conf.png", width: 75%),
+  caption: "Matriz de confusão de desvios padrão normalizada pela média",
+) <fig-confusion-norm>
+
+Podemos observar uma maior variabilidade nos digitos 1 sendo classificados como
+2 e dos dígitos 5 sendo classificados como 8. Também é fácil ver que os
+elementos na diagonal foram os que menos variaram em relação à escala. No geral
+foi observado pouca variação entre folds.
 
 #pagebreak(weak: true)
 == Questão 3
@@ -560,4 +618,12 @@ sobreposição, como pode ser visto na @fig-kde-3c.
 Dada uma diferença tão pequena entre as distribuições, e considerando que é
 ainda menor que o observado na questão 1 como foi argumentado anteriormente,
 não é possível afirmar a existência de uma diferença significativa no
-desempenho global dos métodos.
+desempenho global dos métodos. 
+
+Seria esperado uma melhoria de classificação usando o DPCA, no entanto,
+possivelmente por conta da decisão de usar 150 componentes principais para
+manter a uniformidade com os testes da questão 1, os benefícios da DPCA podem
+ter sido perdidos, pois a técnica minimiza a quantidade de PC's necessárias
+para classificação colocando-as no início da matriz, portanto usando muitas
+PC's não deve ser observada muita diferença se a as mais discriminates são as
+10 primeiras por exemplo.
